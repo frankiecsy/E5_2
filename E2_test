@@ -1,0 +1,71 @@
+import time
+import datetime
+import getopt
+import sys
+
+try:  
+  opts, args = getopt.getopt(sys.argv[1:], "ho:", ["inputOCR=", "inputSpeech="])  
+except getopt.GetoptError:  
+   print (‘Getopt Error!‘)
+   sys.exit(1)
+   
+for name, value in opts:
+    if name in ("-o"):  
+        outPath = value
+        print(outPath)
+    elif name in ("--inputOCR"):
+        inputOCRPath = value
+        print(inputOCRPath)
+    elif name in ("--inputSpeech"):
+        inputSpeechPath = value
+        print(inputSpeechPath)
+
+## cut contents to three parts[begin time] [end time] [txt]
+def SplitFStr(strT):
+    mm = []
+    strT = strT[1:] #cut out str first char to end
+    mm = strT.split(‘]‘, 2)
+    listN = mm[0].split(‘-‘, 2)
+    listN.append(mm[1])
+    return listN
+
+def mapper(line):
+    pos = line.find(‘]‘)
+    return "%s%s%s" % (line[0:pos+1], ‘[OCR]‘, line[pos+1:])
+
+try:
+    ListContents = []
+
+    file = open(inputSpeechPath, ‘r+‘)
+    ListContents = file.readlines()
+    file.close()
+
+    file = open(inputOCRPath, ‘r+‘)
+    ListContentOCR = file.readlines()
+    file.close()
+
+
+    for item in ListContentOCR:
+        itemT = mapper(item)
+        ListContents.append(itemT)
+
+ 
+    ListTotal = []
+    for litem in ListContents:
+        listC = SplitFStr(litem)
+        t1 = time.strptime(listC[0], "%H:%M:%S")
+        dictE = {‘time‘:t1, ‘txt‘:litem}
+        ListTotal.append(dictE)
+
+    def TimeSort(t):
+       return t[‘time‘]
+
+    ListSort = sorted(ListTotal, key = TimeSort)  
+
+
+    fp = open(outPath, ‘w+‘)
+    for lsitem in ListSort:
+        fp.write(lsitem[‘txt‘])
+    fp.close()
+except IOError as err:
+    print(‘File IO error: ‘ + str(err))
